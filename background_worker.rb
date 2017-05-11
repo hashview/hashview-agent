@@ -57,16 +57,9 @@ class Api
   end
 
 
-  ######### specific api funcions #############
+  ######### specific api functions #############
 
-  # get heartbeat when we are looking for work to do
-  def self.heartbeat()
-    url = "https://#{@server}/v1/agents/#{@uuid}/heartbeat"
-    puts "HEARTBEETING GET"
-    return self.get(url)
-  end
-
-  # post hearbeat is used when agent is working
+  # post heartbeat is used when agent is working
   def self.post_heartbeat(payload)
     url = "https://#{@server}/v1/agents/#{@uuid}/heartbeat"
     puts "HEARTBEETING"
@@ -304,7 +297,8 @@ hc_perfstats = hashcatBenchmarkParser(hc_benchmark)
 Api.stats(hc_devices, hc_perfstats)
 
 # download latest wordlists everytime we start
-sync_wordlists
+# TODO reenable once you can detect whether we are authorized or not
+#sync_wordlists
 
 while(1)
   sleep(4)
@@ -330,12 +324,13 @@ while(1)
     payload = {}
     payload['agent_status'] = 'Idle'
     payload['hc_benchmark'] = 'example data'
+    payload['hc_status'] = ''
     heartbeat = Api.post_heartbeat(payload)
     puts '======================================'
     heartbeat = JSON.parse(heartbeat)
     puts heartbeat
 
-    if heartbeat['type'] == 'Message' and heartbeat['msg'] == 'START'
+    if heartbeat['type'] == 'message' and heartbeat['msg'] == 'START'
 
       jdata = Api.queue_by_id(heartbeat['task_id'])
       jdata = JSON.parse(jdata)
@@ -421,21 +416,27 @@ while(1)
         end
 
         # set jobtask status to importing
-        Api.post_jobtask_status(jdata['jobtask_id'], 'Importing')
+        # commenting out now that we are chunking
+        Api.post_queue_status(jdata['id'], 'Importing')
 
         # upload results
         crack_file = 'control/outfiles/hc_cracked_' + jdata['job_id'].to_s + '_' + jobtask['task_id'].to_s + '.txt'
-        Api.upload_crackfile(jobtask['id'], crack_file, @run_time)
+        if File.exist?(crack_file)
+          Api.upload_crackfile(jobtask['id'], crack_file, @run_time)
+        else
+          puts "No successful cracks for this task. Skipping upload."
+        end
 
         # remove task data tmp file
         File.delete('control/tmp/agent_current_task.txt') if File.exist?('control/tmp/agent_current_task.txt')
 
         # change status to completed for jobtask
-        if @canceled
-          Api.post_jobtask_status(jdata['jobtask_id'], 'Canceled')
-        else
-          Api.post_jobtask_status(jdata['jobtask_id'], 'Completed')
-        end
+        # commenting out now that we are chunking
+        # if @canceled
+        #   Api.post_jobtask_status(jdata['jobtask_id'], 'Canceled')
+        # else
+        #   Api.post_jobtask_status(jdata['jobtask_id'], 'Completed')
+        # end
 
         # set taskqueue item to complete and remove from queue
         Api.post_queue_status(jdata['id'], 'Completed')
