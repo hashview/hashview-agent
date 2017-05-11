@@ -243,16 +243,21 @@ def sync_wordlists()
   localwordlists = []
 
   wordlists = Api.wordlists()
+  wordlists = JSON.parse(wordlists)
+  if wordlists['type'] == 'Error'
+    return false
+  end
+  puts wordlists
 
   # get our local list of wordlists
   localchecksums = Dir["control/wordlists/*.checksum"]
-  localchecksums.each do |checksumfile|
-    # do nasty hack to get checksum from filename
-    checksum = checksumfile.split('/')[2].split('.checksum')[0]
-    localwordlists << checksum
+  unless localchecksums.empty?
+    localchecksums.each do |checksumfile|
+      # do nasty hack to get checksum from filename
+      checksum = checksumfile.split('/')[2].split('.checksum')[0]
+      localwordlists << checksum
+    end
   end
-
-  wordlists = JSON.parse(wordlists)
 
   wordlists['wordlists'].each do |wl|
     # if our remote wordlists dont match our loccal checksums, than download wordlist by id
@@ -294,10 +299,10 @@ hc_devices = {}
 hc_devices['gpus'] = hc_gpus
 hc_devices['cpus'] = hc_cpus
 hc_perfstats = hashcatBenchmarkParser(hc_benchmark)
-Api.stats(hc_devices, hc_perfstats)
+#Api.stats(hc_devices, hc_perfstats)
 
-# download latest wordlists everytime we start
 # TODO reenable once you can detect whether we are authorized or not
+# download latest wordlists everytime we start (only if agent is authorized)
 #sync_wordlists
 
 while(1)
@@ -329,8 +334,18 @@ while(1)
     puts '======================================'
     heartbeat = JSON.parse(heartbeat)
     puts heartbeat
+    
+    # upon initial authorization sync wordlists
+    if heartbeat['type'] == 'message' and heartbeat['msg'] == 'Authorized'
+        payload['agent_status'] = 'Syncing'
+        Api.post_heartbeat(payload)
+        sync_wordlists
+    end
 
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'START'
+     
+      # check to see if we need to sync wordlists
+      sync_wordlists
 
       jdata = Api.queue_by_id(heartbeat['task_id'])
       jdata = JSON.parse(jdata)
