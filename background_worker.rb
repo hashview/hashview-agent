@@ -1,7 +1,7 @@
 require 'rest-client'
 require 'benchmark'
 
-@hashcatbinpath = JSON.parse(File.read('config/agent_config.json'))['hc_binary_path']
+$hashcatbinpath = JSON.parse(File.read('config/agent_config.json'))['hc_binary_path']
 
 # one day, when I grow up...I'll be a ruby dev
 # api calls
@@ -232,8 +232,7 @@ end
 
 # replace the placeholder binary path with the user defined path to hashcat binary
 def replaceHashcatBinPath(cmd)
-  hashcatbinpath = JSON.parse(File.read('config/agent_config.json'))['hc_binary_path']
-  cmd = cmd.gsub('@HASHCATBINPATH@', hashcatbinpath)
+  cmd = cmd.gsub('@HASHCATBINPATH@', $hashcatbinpath)
   return cmd
 end
 
@@ -247,7 +246,6 @@ def sync_wordlists()
   if wordlists['type'] == 'Error'
     return false
   end
-  puts wordlists
 
   # get our local list of wordlists
   localchecksums = Dir["control/wordlists/*.checksum"]
@@ -282,13 +280,13 @@ end
 
 # this function provides the master server with basic information about the agent
 def hc_benchmark()
-  cmd = @hashcatbinpath + ' -b -m 1000'
+  cmd = $hashcatbinpath + ' -b -m 1000'
   hc_perfstats = `#{cmd}`
   return  hc_perfstats
 end
 
 def hc_device_list()
-  cmd = @hashcatbinpath + ' -I'
+  cmd = $hashcatbinpath + ' -I'
   hc_devices = `#{cmd}`
   return  hc_devices
 end
@@ -301,8 +299,8 @@ hc_devices['cpus'] = hc_cpus
 hc_perfstats = hashcatBenchmarkParser(hc_benchmark)
 #Api.stats(hc_devices, hc_perfstats)
 
+# download latest wordlists everytime we start
 # TODO reenable once you can detect whether we are authorized or not
-# download latest wordlists everytime we start (only if agent is authorized)
 #sync_wordlists
 
 while(1)
@@ -334,18 +332,15 @@ while(1)
     puts '======================================'
     heartbeat = JSON.parse(heartbeat)
     puts heartbeat
-    
+
     # upon initial authorization sync wordlists
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'Authorized'
-        payload['agent_status'] = 'Syncing'
-        Api.post_heartbeat(payload)
-        sync_wordlists
+      payload['agent_status'] = 'Syncing'
+      Api.post_heartbeat(payload)
+      sync_wordlists
     end
 
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'START'
-     
-      # check to see if we need to sync wordlists
-      sync_wordlists
 
       jdata = Api.queue_by_id(heartbeat['task_id'])
       jdata = JSON.parse(jdata)
