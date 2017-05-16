@@ -9,9 +9,10 @@ desc 'Setup remote agent'
     puts "setting up remote agent for environment: #{ENV['RACK_ENV']}"
 
     agent_config = {}
-    agent_config['master_ip'] = '192.168.0.253'
+    agent_config['master_ip'] = '127.0.0.1'
     agent_config['port'] = '4567'
     agent_config['uuid'] = SecureRandom.uuid.to_s
+    agent_config['hc_binary_path'] = ''
     File.open('config/agent_config.json', 'w') do |f|
       f.write(JSON.pretty_generate(agent_config))
     end
