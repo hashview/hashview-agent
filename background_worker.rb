@@ -338,6 +338,7 @@ while(1)
       payload['agent_status'] = 'Syncing'
       Api.post_heartbeat(payload)
       sync_wordlists
+      Api.stats(hc_devices, hc_perfstats)
     end
 
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'START'
