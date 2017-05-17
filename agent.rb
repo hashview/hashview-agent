@@ -9,7 +9,7 @@ if options['hc_binary_path'] == nil
   exit 0
 end
 
-if options['type'] == 'slave' && options['master'] == '1.1.1.1'
+if options['type'] == 'slave' && options['master_ip'] == '1.1.1.1'
   puts '[!] You must specify a valid IP to your master instance of Hashview. Do this in your config/agent_config.json file'
   exit 0
 end
