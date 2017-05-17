@@ -167,7 +167,6 @@ class Api
     payload['cpu_count'] = hc_devices['cpus']
     payload['gpu_count'] = hc_devices['gpus']
     payload['benchmark'] = hc_perfstats
-    puts payload
     return self.post(url, payload)
   end
 end
@@ -297,11 +296,6 @@ hc_devices = {}
 hc_devices['gpus'] = hc_gpus
 hc_devices['cpus'] = hc_cpus
 hc_perfstats = hashcatBenchmarkParser(hc_benchmark)
-#Api.stats(hc_devices, hc_perfstats)
-
-# download latest wordlists everytime we start
-# TODO reenable once you can detect whether we are authorized or not
-#sync_wordlists
 
 while(1)
   sleep(4)
