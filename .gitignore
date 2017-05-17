@@ -26,7 +26,6 @@ control/tmp/*
 cudaHashcat.log
 *.pot
 *.restore
-Gemfile.lock
 *.idea
 dump.rdb
 ~                                                                                                                                            
