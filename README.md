@@ -2,17 +2,17 @@
 
 This is the headless agent that connects to the master instance of Hashview to support distributed cracking.
 
-Warning! distributed support is very ALPHA
+**Warning!** distributed support is very ALPHA. This agent only works with dev instances of Hashview!
 
 More information about distributed support can be found here: [Hashview Wiki - Distributed Cracking](https://github.com/hashview/hashview/wiki/04_Distributed_Cracking)
 
-## Prequisites
+## Prerequisites 
 
-Strongly suggest using RVM like always: `\curl -sSL https://get.rvm.io | bash -s stable --ruby`
+We strongly suggest using RVM: `\curl -sSL https://get.rvm.io | bash -s stable --ruby`
 
 ### Networking Requirements
 
-Agents heartbeat to the master server where your full install of Hashview is located. You'll need inbound port 443 traffic for agents to communicate.
+Agents heartbeat to the master server where your full install of Hashview is located. You'll need inbound port 4567/tcp traffic for agents to communicate.
 
 ## Install
 
