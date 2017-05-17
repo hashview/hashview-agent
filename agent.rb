@@ -4,7 +4,7 @@ require 'resque'
 
 options = JSON.parse(File.read('config/agent_config.json'))
 
-if options['hc_binary_path'] == nil
+if options['hc_binary_path'].empty?
   puts '[!] You must defined the full path to your hashcat binary. Do this in your config/agent_config.json file'
   exit 0
 end
