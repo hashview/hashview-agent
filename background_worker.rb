@@ -127,16 +127,16 @@ class Api
     return self.get(url)
   end
 
-  # download a wordlist
-  def self.wordlist(wordlist_id)
-    url = "https://#{@server}/v1/wordlist/#{wordlist_id}"
-    return self.get(url)
-  end
+  # # download a wordlist
+  # def self.wordlist(wordlist_id)
+  #   url = "https://#{@server}/v1/wordlist/#{wordlist_id}"
+  #  return self.get(url)
+  # end
 
-  # save wordlist to disk
-  def self.save_wordlist(localpath='control/wordlists/thisisjustatest.txt')
-    File.write(localpath)
-  end
+  # # save wordlist to disk
+  # def self.save_wordlist(localpath='control/wordlists/thisisjustatest.txt')
+  #   File.write(localpath)
+  # end
 
   # upload crack file
   def self.upload_crackfile(jobtask_id, crack_file, run_time=0)
@@ -257,15 +257,40 @@ def sync_wordlists()
   end
 
   wordlists['wordlists'].each do |wl|
-    # if our remote wordlists dont match our loccal checksums, than download wordlist by id
+    # if our remote wordlists dont match our local checksums, than download wordlist by id
     unless localwordlists.include? wl['checksum']
       puts "you need to download #{wl['name']} = #{wl['checksum']}"
-      wordlist = Api.wordlist(wl['id'])
-      File.open(wl['path'], 'wb') do |f|
-        # do not use f.puts - we want << (or .write i think) b/c it writes with no formatting
-        # this writes without modifying our newlines and thus the checksum of the file will be correct
-        f << wordlist
-      end
+      File.open('control/tmp/' + wl['name'] + '.gz', 'w' {|f|
+        block = proc { |response|
+          response.read_body do |chunk|
+            puts 'working on response'
+            f.write chunk
+          end
+        }
+        # Have to create our own request since response is not in json format
+        options = JSON.parse(File.read('config/agent_config.json'))
+        @server = options['master_ip'] + ":" + options['port']
+        @uuid = options['uuid']
+        url = "https://#{@server}/v1/wordlist/#{wl['id']}"
+        RestClient::Request.new(
+          method: :get, 
+          url: url, 
+          cookies: {:agent_uuid => @uuid},
+          verify_ssl: false,
+          block_response: block
+          ).execute
+      }
+      cmd = "mv control/tmp/#{wl['name']}.gz control/wordlists/"
+      `#{cmd}`
+      cmd = "gunzip control/wordlists/#{wl['name'}.gz"
+      `#{cmd}`
+      # wordlist = Api.wordlist(wl['id'])
+      
+      #File.open(wl['path'], 'wb') do |f|
+      #  # do not use f.puts - we want << (or .write i think) b/c it writes with no formatting
+      #  # this writes without modifying our newlines and thus the checksum of the file will be correct
+      #  f << wordlist
+      #end
 
       # generate checksums for newly downloaded file
       checksum = Digest::SHA2.hexdigest(File.read(wl['path']))
