@@ -260,7 +260,7 @@ def sync_wordlists()
     # if our remote wordlists dont match our local checksums, than download wordlist by id
     unless localwordlists.include? wl['checksum']
       puts "you need to download #{wl['name']} = #{wl['checksum']}"
-      File.open('control/tmp/' + wl['name'] + '.gz', 'w' {|f|
+      File.open('control/tmp/' + wl['name'] + '.gz', 'w') {|f|
         block = proc { |response|
           response.read_body do |chunk|
             puts 'working on response'
@@ -282,7 +282,7 @@ def sync_wordlists()
       }
       cmd = "mv control/tmp/#{wl['name']}.gz control/wordlists/"
       `#{cmd}`
-      cmd = "gunzip control/wordlists/#{wl['name'}.gz"
+      cmd = "gunzip control/wordlists/#{wl['name']}.gz"
       `#{cmd}`
       # wordlist = Api.wordlist(wl['id'])
       
