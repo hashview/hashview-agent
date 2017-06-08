@@ -260,10 +260,11 @@ def sync_wordlists()
     # if our remote wordlists dont match our local checksums, than download wordlist by id
     unless localwordlists.include? wl['checksum']
       puts "you need to download #{wl['name']} = #{wl['checksum']}"
+      puts "Downloading..."
       File.open('control/tmp/' + wl['name'] + '.gz', 'w') {|f|
         block = proc { |response|
           response.read_body do |chunk|
-            puts 'working on response'
+            #puts 'working on response'
             f.write chunk
           end
         }
@@ -276,12 +277,14 @@ def sync_wordlists()
           method: :get, 
           url: url, 
           cookies: {:agent_uuid => @uuid},
+          timeout: 43200,
           verify_ssl: false,
           block_response: block
           ).execute
       }
       cmd = "mv control/tmp/#{wl['name']}.gz control/wordlists/"
       `#{cmd}`
+      puts "Unpacking...."
       cmd = "gunzip control/wordlists/#{wl['name']}.gz"
       `#{cmd}`
       # wordlist = Api.wordlist(wl['id'])
@@ -293,9 +296,15 @@ def sync_wordlists()
       #end
 
       # generate checksums for newly downloaded file
-      checksum = Digest::SHA2.hexdigest(File.read(wl['path']))
-      File.open("control/wordlists/#{checksum}" + ".checksum", 'w') do |f|
-        f.puts "#{checksum} #{wl['path'].split("/")[-1]}"
+      #checksum = Digest::SHA2.hexdigest(File.read(wl['path']))
+      puts "Calculating checksum"
+      cmd = "control/wordlists/#{wl['name']}"
+      p 'CMD: ' + cmd + '<--'
+      checksum = `sha256sum "#{cmd}"`
+      p 'checksum: ' + checksum
+     
+      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'w') do |f|
+        f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
 
     end
