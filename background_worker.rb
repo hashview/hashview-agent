@@ -299,7 +299,6 @@ def sync_wordlists()
       #checksum = Digest::SHA2.hexdigest(File.read(wl['path']))
       puts "Calculating checksum"
       cmd = "control/wordlists/#{wl['name']}"
-      p 'CMD: ' + cmd + '<--'
       checksum = `sha256sum "#{cmd}"`
       p 'checksum: ' + checksum
      
