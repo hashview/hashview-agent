@@ -121,6 +121,18 @@ class Api
     return self.get(url)
   end
 
+  # Rules
+  def self.rules()
+    url = "https://#{@server}/v1/rules"
+    return self.get(url)
+  end
+
+  # Download a rules file
+  def self.rule(rules_id)
+    url = "https://#{@server}/v1/rules/#{rules_id}"
+    return self.get(url)
+  end
+
   # wordlists
   def self.wordlists()
     url = "https://#{@server}/v1/wordlist"
@@ -235,6 +247,48 @@ def replaceHashcatBinPath(cmd)
   return cmd
 end
 
+# this function compares the agents local rules files to the master server's rules files
+# if this agent is missing a rules file it will download them before taking jobs from queue.
+def sync_rules_files()
+  local_rulesfile_checksums = []
+
+  server_rules = Api.rules()
+  server_rules = JSON.parse(server_rules)
+  if server_rules['type'] == 'Error'
+    return false
+  end
+
+  # get our local list of rules
+  localchecksums = Dir["control/rules/*.checksum"]
+  unless localchecksums.empty?
+    localchecksums.each do |checksumfile|
+      # do nasty hack to get checksum from filename
+      # TODO this should be filec ontents with rulesfilename.checksum as the file name
+      checksum = checksumfile.split('/')[2].split('.checksum')[0]
+      local_rulesfile_checksums << checksum
+    end
+  end
+
+  server_rules['rules'].each do |server_rulesfile|
+    # if our remote rules file checksum dont match our local rules file checksumchecksums, than download rulesfile by id
+    unless local_rulesfile_checksums.include? server_rulesfile['checksum']
+      puts "you need to download #{server_rulesfile['name']} = #{server_rulesfile['checksum']}"
+      puts "Downloading..."
+      local_rulesfile = Api.rule(server_rulesfile['id'])
+      File.open(server_rulesfile['path'], 'w') do |f|
+        f << local_rulesfile
+      end
+
+      # generate checksums for newly downloaded file
+      checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
+      File.open("control/rules/#{checksum}" + ".checksum", 'w') do |f|
+        f.puts "#{checksum} #{server_rulesfile['path'].split("/")[-1]}"
+      end
+    end
+  end
+end
+
+
 # this function compares the agents local wordlists to the master server's wordlists
 # if this agent is missing wordlists it will download them before taking jobs from queue.
 def sync_wordlists()
@@ -264,7 +318,6 @@ def sync_wordlists()
       File.open('control/tmp/' + wl['name'] + '.gz', 'w') {|f|
         block = proc { |response|
           response.read_body do |chunk|
-            #puts 'working on response'
             f.write chunk
           end
         }
@@ -287,22 +340,13 @@ def sync_wordlists()
       puts "Unpacking...."
       cmd = "gunzip control/wordlists/#{wl['name']}.gz"
       `#{cmd}`
-      # wordlist = Api.wordlist(wl['id'])
-      
-      #File.open(wl['path'], 'wb') do |f|
-      #  # do not use f.puts - we want << (or .write i think) b/c it writes with no formatting
-      #  # this writes without modifying our newlines and thus the checksum of the file will be correct
-      #  f << wordlist
-      #end
 
       # generate checksums for newly downloaded file
-      #checksum = Digest::SHA2.hexdigest(File.read(wl['path']))
       puts "Calculating checksum"
       cmd = "control/wordlists/#{wl['name']}"
       checksum = `sha256sum "#{cmd}"`
-      p 'checksum: ' + checksum
      
-      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'w') do |f|
+      File.open("control/wordlists/#{checksum}" + ".checksum", 'w') do |f|
         f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
 
@@ -360,15 +404,19 @@ while(1)
     heartbeat = JSON.parse(heartbeat)
     puts heartbeat
 
-    # upon initial authorization sync wordlists
+    # upon initial authorization perfstats
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'Authorized'
       payload['agent_status'] = 'Syncing'
-      Api.post_heartbeat(payload)
-      sync_wordlists
+      sync_rules_files
       Api.stats(hc_devices, hc_perfstats)
     end
 
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'START'
+
+      # Sync up before jobs starts
+      payload['agent_status'] = 'Syncing'
+      Api.post_heartbeat(payload)
+      sync_wordlists
 
       jdata = Api.queue_by_id(heartbeat['task_id'])
       jdata = JSON.parse(jdata)
