@@ -341,12 +341,15 @@ def sync_wordlists()
       cmd = "gunzip control/wordlists/#{wl['name']}.gz"
       `#{cmd}`
 
+      # Renaming
+      cmd = "mv control/wordlists/#{wl['name']} #{wl['path']}"
+      `#{cmd}`
+
       # generate checksums for newly downloaded file
       puts "Calculating checksum"
-      cmd = "control/wordlists/#{wl['name']}"
-      checksum = `sha256sum "#{cmd}"`
+      checksum = `sha256sum "#{wl['path']}"`
      
-      File.open("control/wordlists/#{checksum}" + ".checksum", 'w') do |f|
+      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'w') do |f|
         f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
 
@@ -407,7 +410,7 @@ while(1)
     # upon initial authorization perfstats
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'Authorized'
       payload['agent_status'] = 'Syncing'
-      sync_rules_files
+      #sync_rules_files
       Api.stats(hc_devices, hc_perfstats)
     end
 
@@ -417,6 +420,7 @@ while(1)
       payload['agent_status'] = 'Syncing'
       Api.post_heartbeat(payload)
       sync_wordlists
+      sync_rules_files
 
       jdata = Api.queue_by_id(heartbeat['task_id'])
       jdata = JSON.parse(jdata)
