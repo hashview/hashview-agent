@@ -151,20 +151,20 @@ class Api
   # end
 
   # upload crack file
-  def self.upload_crackfile(jobtask_id, crack_file, run_time=0)
+  def self.upload_crackfile(jobtask_id, crack_file, run_time)
     url = "https://#{@server}/v1/jobtask/#{jobtask_id}/crackfile/upload"
     puts "attempting upload #{crack_file}"
     begin
       request = RestClient::Request.new(
-            :method => :post,
-            :url => url,
-            :payload => {
-              :multipart => true,
-              :file => File.new(crack_file, 'rb'),
-              :runtime => run_time
-            },
-            :cookies => {:agent_uuid => @uuid},
-            :verify_ssl => false
+        :method => :post,
+        :url => url,
+        :payload => {
+          :multipart => true,
+          :file => File.new(crack_file, 'rb'),
+          :runtime => run_time
+        },
+        :cookies => {:agent_uuid => @uuid},
+        :verify_ssl => false
       )
       response = request.execute
     rescue RestClient::Exception => e
@@ -470,8 +470,9 @@ while(1)
         @canceled = false
 
         # # thread off hashcat
+        run_time = 0
         thread1 = Thread.new {
-          @run_time = Benchmark.realtime do
+          run_time = Benchmark.realtime do
             system(cmd)
           end
         }
@@ -512,7 +513,7 @@ while(1)
         # upload results
         crack_file = 'control/outfiles/hc_cracked_' + jdata['job_id'].to_s + '_' + jobtask['task_id'].to_s + '.txt'
         if File.exist?(crack_file)
-          Api.upload_crackfile(jobtask['id'], crack_file, @run_time)
+          Api.upload_crackfile(jobtask['id'], crack_file, run_time)
         else
           puts "No successful cracks for this task. Skipping upload."
         end
