@@ -97,12 +97,18 @@ class Api
     return self.get(url)
   end
 
-    # remove item from queue
+  # remove item from queue
   def self.queue_remove(queue_id)
     url = "https://#{@server}/v1/queue/#{queue_id}/remove"
     return self.get(url)
   end
 
+  # task details
+  def self.task(task_id)
+    url = "https://#{@server}/v1/task/#{task_id}"
+    return self.get(url)
+  end
+  
   # jobtask details
   def self.jobtask(jobtask_id)
     url = "https://#{@server}/v1/jobtask/#{jobtask_id}"
@@ -139,6 +145,11 @@ class Api
     return self.get(url)
   end
 
+  def self.get_updateSmartWordlist()
+    url = "https://#{@server}/v1/updateSmartWordlist"
+    return self.get(url)
+  end
+  
   # # download a wordlist
   # def self.wordlist(wordlist_id)
   #   url = "https://#{@server}/v1/wordlist/#{wordlist_id}"
@@ -451,6 +462,20 @@ while(1)
         # puts wordlists
         #puts Api.wordlist()
 
+        # Check to see if we're using Smart Wordlist and if so, calculate it and download it
+        task = JSON.parse(API.task(jobtask['task_id']))
+        wordlists = JSON.parse(Api.wordlists)
+        wordlist['wordlists'].each do |wordlist|
+          if wordlist['id'].to_i == task['wl_id'].to_i
+            if wordlist['name'] == 'Smart Wordlist'
+              p "We're using a smart wordlist, forcing an update"
+              Api.get_updateSmartWordlist
+              # Remote file may have changed, now we need to sync
+              sync_wordlists
+            end
+          end
+        end
+        
         # generate hashfile via api
         hashes = Api.hashfile(jobtask['id'], job['hashfile_id'])
 
