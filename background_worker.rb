@@ -23,6 +23,7 @@ class Api
       response = RestClient::Request.execute(
           :method => :get,
           :url => url,
+          :timeout => 90000000,
           :cookies => {:agent_uuid => @uuid},
           :verify_ssl => false
       )
@@ -326,7 +327,8 @@ def sync_wordlists()
     unless localwordlists.include? wl['checksum']
       puts "you need to download #{wl['name']} = #{wl['checksum']}"
       puts "Downloading..."
-      File.open('control/tmp/' + wl['name'] + '.gz', 'w') {|f|
+      filename = wl['path'].split('/')[-1]
+      File.open('control/tmp/' + filename + '.gz', 'w') {|f|
         block = proc { |response|
           response.read_body do |chunk|
             f.write chunk
@@ -346,15 +348,15 @@ def sync_wordlists()
           block_response: block
           ).execute
       }
-      cmd = "mv control/tmp/#{wl['name']}.gz control/wordlists/"
+      cmd = "mv control/tmp/#{filename}.gz control/wordlists/"
       `#{cmd}`
       puts "Unpacking...."
-      cmd = "gunzip control/wordlists/#{wl['name']}.gz"
+      cmd = "gunzip -f control/wordlists/#{filename}.gz"
       `#{cmd}`
 
       # Renaming
-      cmd = "mv control/wordlists/#{wl['name']} #{wl['path']}"
-      `#{cmd}`
+      #cmd = "mv control/wordlists/#{wl['name']} #{wl['path']}"
+      #`#{cmd}`
 
       # generate checksums for newly downloaded file
       puts "Calculating checksum"
@@ -462,16 +464,22 @@ while(1)
         # puts wordlists
         #puts Api.wordlist()
 
+        p "DEBUG: jobtask: " + jobtask.to_s
         # Check to see if we're using Smart Wordlist and if so, calculate it and download it
-        task = JSON.parse(API.task(jobtask['task_id']))
+        p "DEBUG: jobtask['task_id']" + jobtask['task_id'].to_s
+        task = JSON.parse(Api.task(jobtask['task_id']))
+        p "DEBUG TASK: " + task.to_s
         wordlists = JSON.parse(Api.wordlists)
-        wordlist['wordlists'].each do |wordlist|
+        wordlists['wordlists'].each do |wordlist|
           if wordlist['id'].to_i == task['wl_id'].to_i
             if wordlist['name'] == 'Smart Wordlist'
               p "We're using a smart wordlist, forcing an update"
               Api.get_updateSmartWordlist
               # Remote file may have changed, now we need to sync
+              p 'Update Complete'
+              p 'syncing wordlists'
               sync_wordlists
+              p 'Sync complete'
             end
           end
         end
