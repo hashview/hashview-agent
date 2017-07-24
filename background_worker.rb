@@ -360,8 +360,17 @@ def sync_wordlists()
 
       # generate checksums for newly downloaded file
       puts "Calculating checksum"
-      checksum = `sha256sum "#{wl['path']}"`
-     
+      checksum = ''
+      host_os = RbConfig::CONFIG['host_os']
+      case host_os
+        when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+         checksum = `sha256sum "#{wl['path']}"`
+        when /darwin|mac os/  #provide mac support
+          checksum = `shasum -a 256 "#{wl['path']}"`
+        else
+          checksum = `sha256sum "#{wl['path']}"`
+       end
+
       File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'w') do |f|
         f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
