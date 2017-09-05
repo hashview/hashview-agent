@@ -287,13 +287,13 @@ def sync_rules_files()
       puts "you need to download #{server_rulesfile['name']} = #{server_rulesfile['checksum']}"
       puts "Downloading..."
       local_rulesfile = Api.rule(server_rulesfile['id'])
-      File.open(server_rulesfile['path'], 'w') do |f|
+      File.open(server_rulesfile['path'], 'wb') do |f|
         f << local_rulesfile
       end
 
       # generate checksums for newly downloaded file
       checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
-      File.open("control/rules/#{checksum}" + ".checksum", 'w') do |f|
+      File.open("control/rules/#{checksum}" + ".checksum", 'wb') do |f|
         f.puts "#{checksum} #{server_rulesfile['path'].split("/")[-1]}"
       end
     end
@@ -328,7 +328,7 @@ def sync_wordlists()
       puts "you need to download #{wl['name']} = #{wl['checksum']}"
       puts "Downloading..."
       filename = wl['path'].split('/')[-1]
-      File.open('control/tmp/' + filename + '.gz', 'w') {|f|
+      File.open('control/tmp/' + filename + '.gz', 'wb') {|f|
         block = proc { |response|
           response.read_body do |chunk|
             f.write chunk
@@ -362,7 +362,7 @@ def sync_wordlists()
       puts "Calculating checksum"
       checksum = `sha256sum "#{wl['path']}"`
      
-      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'w') do |f|
+      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'wb') do |f|
         f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
 
@@ -442,7 +442,7 @@ while(1)
       if jdata['type'] != 'Error'
 
         # save task data to tmp to signify we are working
-        File.open('control/tmp/agent_current_task.txt', 'w') do |f|
+        File.open('control/tmp/agent_current_task.txt', 'wb') do |f|
           f.write(jdata)
         end
 
@@ -490,7 +490,7 @@ while(1)
         # write hashes to local filesystem
         hashfile = "control/hashes/hashfile_#{jdata['job_id']}_#{jobtask['task_id']}.txt"
         puts hashfile
-        File.open(hashfile, 'w') do |f|
+        File.open(hashfile, 'wb') do |f|
           f.puts hashes
         end
 
