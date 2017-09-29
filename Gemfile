@@ -5,5 +5,6 @@ gem 'resque'
 gem 'json'
 gem 'foreman'
 gem 'rest-client'
+gem 'logger'
 
 

@@ -8,6 +8,7 @@ GEM
     http-cookie (1.0.3)
       domain_name (~> 0.5)
     json (2.0.3)
+    logger (1.2.8)
     mime-types (3.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2016.0521)
@@ -48,6 +49,7 @@ PLATFORMS
 DEPENDENCIES
   foreman
   json
+  logger
   resque
   rest-client
 
@@ -55,4 +57,4 @@ RUBY VERSION
    ruby 2.2.2p95
 
 BUNDLED WITH
-   1.14.6
+   1.15.4

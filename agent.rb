@@ -1,4 +1,5 @@
 require 'resque'
+require 'logger'
 
 # simple config sanity checks
 
