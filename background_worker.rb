@@ -249,7 +249,11 @@ def hashcatBenchmarkParser(output)
 end
 
 def getHashcatPid
-  pid = `ps -ef | grep hashcat | grep hc_cracked_ | grep -v 'ps -ef' | grep -v 'sh \-c' | awk '{print $2}'`
+  if get_os == 'win'
+    #This does not work on win, need to figure out how to get the pid of hashcat
+  else
+    pid = `ps -ef | grep hashcat | grep hc_cracked_ | grep -v 'ps -ef' | grep -v 'sh \-c' | awk '{print $2}'`
+  end
   return pid.chomp
 end
 
@@ -298,6 +302,21 @@ def sync_rules_files()
       end
     end
   end
+end
+
+# this funtion check the host operating system to we can resolve
+# differences between win, mac, linux
+def get_os()
+  host_os = RbConfig::CONFIG['host_os']
+  case host_os
+    when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+      host_os='win'
+    when /darwin|mac os/  #provide mac support
+      host_os='mac'
+    else
+      host_os='lin'
+    end
+  return host_os
 end
 
 
@@ -361,21 +380,16 @@ def sync_wordlists()
       # generate checksums for newly downloaded file
       puts "Calculating checksum"
  
-      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'wb') do |f|
-
       checksum = ''
-      host_os = RbConfig::CONFIG['host_os']
-      case host_os
-        when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
-         checksum = `sha256sum "#{wl['path']}"`
-        when /darwin|mac os/  #provide mac support
+      case get_os
+        when /mac/  #provide mac support
           checksum = `shasum -a 256 "#{wl['path']}"`
         else
           checksum = `sha256sum "#{wl['path']}"`
-        end
+      end
+      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'wb') do |f|
         f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
-
     end
   end
 end
@@ -542,7 +556,12 @@ while(1)
               # manually kill it to be certain
               pid = getHashcatPid
               if pid
-                `kill -9 #{pid}`
+                if get_os == 'win'
+				  puts "Killing #{pid}"
+                  system("taskkill /f /pid #{pid}")
+                else
+                  `kill -9 #{pid}`
+                end
               end
               throw :mainloop
             end
