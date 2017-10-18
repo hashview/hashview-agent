@@ -250,11 +250,20 @@ end
 
 def getHashcatPid
   if get_os == 'win'
-    #This does not work on win, need to figure out how to get the pid of hashcat
-  else
-    pid = `ps -ef | grep hashcat | grep hc_cracked_ | grep -v 'ps -ef' | grep -v 'sh \-c' | awk '{print $2}'`
-  end
-  return pid.chomp
+    procs = WIN32OLE.connect("winmgmts:\\\\.")
+      processes = procs.ExecQuery("select ProcessID from win32_process where Name LIKE '%hashcat%'")
+    if processes.count > 0 
+      for process in processes do
+        pid = process.ProcessID.to_s
+      end
+    else
+      pid=""
+    end
+    else
+      pid = `ps -ef | grep hashcat | grep hc_cracked_ | grep -v 'ps -ef' | grep -v 'sh \-c' | awk '{print $2}'`
+    pid = pid.chomp
+    end
+    return pid
 end
 
 # replace the placeholder binary path with the user defined path to hashcat binary
@@ -296,7 +305,12 @@ def sync_rules_files()
       end
 
       # generate checksums for newly downloaded file
-      checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
+      if get_os == 'win'
+        checksum = `sha256sum "#{server_rulesfile['path']}"`
+        checksum = checksum.split(' ')[0]
+      else
+        checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
+      end
       File.open("control/rules/#{checksum}" + ".checksum", 'wb') do |f|
         f.puts "#{checksum} #{server_rulesfile['path'].split("/")[-1]}"
       end
@@ -310,6 +324,7 @@ def get_os()
   host_os = RbConfig::CONFIG['host_os']
   case host_os
     when /mswin|msys|mingw|cygwin|bccwin|wince|emc/
+      require 'win32ole'
       host_os='win'
     when /darwin|mac os/  #provide mac support
       host_os='mac'
