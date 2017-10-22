@@ -1,6 +1,9 @@
 require 'rest-client'
 require 'benchmark'
 
+$log = Logger.new(STDOUT)
+$log.level = Logger::DEBUG
+
 $hashcatbinpath = JSON.parse(File.read('config/agent_config.json'))['hc_binary_path']
 
 # one day, when I grow up...I'll be a ruby dev
@@ -29,10 +32,10 @@ class Api
       )
       return response.body
     rescue RestClient::Exception => e
-      puts e
+      $log.error e
       return '{"error_msg": "api call failed"}'
     rescue Errno::ECONNREFUSED => err
-      puts err
+      $log.error err
       return '{"error_msg": "connection refused from remote host"}'
     end
   end
@@ -49,10 +52,10 @@ class Api
       )
       return response.body
     rescue RestClient::Exception => e
-      puts e
+      $log.error e
       return '{"error_msg": "api call failed"}'
     rescue Errno::ECONNREFUSED => err
-      puts err
+      $log.error err
       return '{"error_msg": "connection refused from remote host"}'
     end
   end
@@ -63,7 +66,7 @@ class Api
   # post heartbeat is used when agent is working
   def self.post_heartbeat(payload)
     url = "https://#{@server}/v1/agents/#{@uuid}/heartbeat"
-    puts "HEARTBEETING"
+    $log.info "HEARTBEETING"
     return self.post(url, payload)
   end
 
@@ -165,7 +168,7 @@ class Api
   # upload crack file
   def self.upload_crackfile(jobtask_id, crack_file, run_time)
     url = "https://#{@server}/v1/jobtask/#{jobtask_id}/crackfile/upload"
-    puts "attempting upload #{crack_file}"
+    $log.info  "attempting upload #{crack_file}"
     begin
       request = RestClient::Request.new(
         :method => :post,
@@ -180,7 +183,7 @@ class Api
       )
       response = request.execute
     rescue RestClient::Exception => e
-      puts e
+      $log.error e
       return '{error_msg: \'api call failed\'}'
     end
   end
@@ -232,8 +235,8 @@ def hashcatDeviceParser(output)
       end
     end
   end
-  puts "agent has #{cpus} CPUs"
-  puts "agent has #{gpus} GPUs"
+  $log.info  "agent has #{cpus} CPUs"
+  $log.info  "agent has #{gpus} GPUs"
   return cpus, gpus
 end
 
@@ -244,7 +247,7 @@ def hashcatBenchmarkParser(output)
       max_speed = line.split(': ')[-1].to_s
     end
   end
-  puts "agent max cracking speed (single NTLM hash):\n #{max_speed}"
+  $log.info "agent max cracking speed (single NTLM hash):\n #{max_speed}"
   return max_speed
 end
 
@@ -297,20 +300,15 @@ def sync_rules_files()
   server_rules['rules'].each do |server_rulesfile|
     # if our remote rules file checksum dont match our local rules file checksumchecksums, than download rulesfile by id
     unless local_rulesfile_checksums.include? server_rulesfile['checksum']
-      puts "you need to download #{server_rulesfile['name']} = #{server_rulesfile['checksum']}"
-      puts "Downloading..."
+      $log.info  "you need to download #{server_rulesfile['name']} = #{server_rulesfile['checksum']}"
+      $log.info  "Downloading..."
       local_rulesfile = Api.rule(server_rulesfile['id'])
       File.open(server_rulesfile['path'], 'wb') do |f|
         f << local_rulesfile
       end
 
       # generate checksums for newly downloaded file
-      if get_os == 'win'
-        checksum = `sha256sum "#{server_rulesfile['path']}"`
-        checksum = checksum.split(' ')[0]
-      else
-        checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
-      end
+      checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
       File.open("control/rules/#{checksum}" + ".checksum", 'wb') do |f|
         f.puts "#{checksum} #{server_rulesfile['path'].split("/")[-1]}"
       end
@@ -359,8 +357,8 @@ def sync_wordlists()
   wordlists['wordlists'].each do |wl|
     # if our remote wordlists dont match our local checksums, than download wordlist by id
     unless localwordlists.include? wl['checksum']
-      puts "you need to download #{wl['name']} = #{wl['checksum']}"
-      puts "Downloading..."
+      $log.info "you need to download #{wl['name']} = #{wl['checksum']}"
+      $log.info "Downloading..."
       filename = wl['path'].split('/')[-1]
       File.open('control/tmp/' + filename + '.gz', 'wb') {|f|
         block = proc { |response|
@@ -383,9 +381,11 @@ def sync_wordlists()
           ).execute
       }
       cmd = "mv control/tmp/#{filename}.gz control/wordlists/"
+      $log.debug "Running cmd: #{cmd}"
       `#{cmd}`
-      puts "Unpacking...."
+      $log.info "Unpacking...."
       cmd = "gunzip -f control/wordlists/#{filename}.gz"
+      $log.debug "Running cmd: #{cmd}"
       `#{cmd}`
 
       # Renaming
@@ -393,7 +393,7 @@ def sync_wordlists()
       #`#{cmd}`
 
       # generate checksums for newly downloaded file
-      puts "Calculating checksum"
+      $log.info "Calculating checksum"
  
       checksum = ''
       case get_os
@@ -443,7 +443,7 @@ while(1)
 
   # ok either do nothing or start working
   if pid.nil?
-    puts "AGENT IS WORKING RIGHT NOW"
+    $log.info "AGENT IS WORKING RIGHT NOW"
   else
 
     # if we have taskqueue tmp file locally, delete it
@@ -455,9 +455,9 @@ while(1)
     payload['hc_benchmark'] = 'example data'
     payload['hc_status'] = ''
     heartbeat = Api.post_heartbeat(payload)
-    puts '======================================'
+    $log.info '======================================'
     heartbeat = JSON.parse(heartbeat)
-    puts heartbeat
+    $log.info heartbeat
 
     # upon initial authorization perfstats
     if heartbeat['type'] == 'message' and heartbeat['msg'] == 'Authorized'
@@ -528,7 +528,7 @@ while(1)
 
         # write hashes to local filesystem
         hashfile = "control/hashes/hashfile_#{jdata['job_id']}_#{jobtask['task_id']}.txt"
-        puts hashfile
+        $log.info hashfile
         File.open(hashfile, 'wb') do |f|
           f.puts hashes
         end
@@ -536,7 +536,7 @@ while(1)
         # get our hashcat command and sub out the binary path
         cmd = jdata['command']
         cmd = replaceHashcatBinPath(cmd)
-        puts cmd
+        $log.debug "Hashcat command to run: #{cmd}"
 
         # this variable is used to determine if the job was canceled
         @canceled = false
@@ -554,8 +554,8 @@ while(1)
         catch :mainloop do
           while thread1.status do
             sleep 4
-            puts "WORKING IN THREAD"
-            puts "WORKING ON ID: #{jdata['id']}"
+            $log.info "WORKING IN THREAD"
+            $log.info "WORkING ON ID: #{jdata['id']}"
             payload = {}
             payload['agent_status'] = 'Working'
             payload['agent_task'] = jdata['id']
@@ -572,9 +572,10 @@ while(1)
               pid = getHashcatPid
               if pid
                 if get_os == 'win'
-				  puts "Killing #{pid}"
+                          $log.debug "Killing #{pid}"
                   system("taskkill /f /pid #{pid}")
                 else
+                  $log.debug "Killing #{pid}"
                   `kill -9 #{pid}`
                 end
               end
@@ -590,9 +591,10 @@ while(1)
         # upload results
         crack_file = 'control/outfiles/hc_cracked_' + jdata['job_id'].to_s + '_' + jobtask['task_id'].to_s + '.txt'
         if File.exist?(crack_file)
+          $log.debug "Uploading crack_file: #{crack_file}"
           Api.upload_crackfile(jobtask['id'], crack_file, run_time)
         else
-          puts "No successful cracks for this task. Skipping upload."
+          $log.info "No successful cracks for this task. Skipping upload."
         end
 
         # remove task data tmp file
