@@ -551,6 +551,7 @@ while(1)
 
         @jobid = jdata['job_id']
         # # continue to hearbeat while running job. look for a stop command
+        last_line_count = 0
         catch :mainloop do
           while thread1.status do
             sleep 4
@@ -564,6 +565,32 @@ while(1)
             heartbeat = Api.post_heartbeat(payload)
             heartbeat = JSON.parse(heartbeat)
 
+            # upload hashes that have been cracked
+            crack_file = 'control/outfiles/hc_cracked_' + jdata['job_id'].to_s + '_' + jobtask['task_id'].to_s + '.txt'
+            if File.exist?(crack_file)
+              $log.debug "The crack file: #{crack_file} has been found"
+              count = File.foreach(crack_file).inject(0) {|c, line| c+1}
+              if last_line_count < count
+                $log.debug "Count = #{count}  LastCount was #{last_line_count}"
+                $log.info "#{count-last_line_count} New Lines Have Been Added to cracked hash file"
+                
+                #open our crack file to get new lines
+                lines = File.open(crack_file).to_a
+                # save new lines to a temp file
+                File.open('control/tmp/cracked.txt', 'wb') do |f|
+                  (last_line_count..count).each do |i|
+                    f.write(lines.at(i))
+                  end
+                end
+                $log.debug "Uploading crack_file: 'control/tmp/cracked.txt'"
+                Api.upload_crackfile(jobtask['id'], 'control/tmp/cracked.txt', run_time)
+                File.delete('control/tmp/cracked.txt')
+                #update our counter for the next loop through
+                last_line_count = count
+              end
+            end
+
+            #job was canceled
             if heartbeat['msg'] == 'Canceled'
               @canceled = true
               Thread.kill(thread1)
