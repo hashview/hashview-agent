@@ -10,22 +10,22 @@ class Api
   # obtain remote ip and port from local config
   begin
     options = JSON.parse(File.read('config/agent_config.json'))
-    @server = options['master_ip'] + ":" + options['port']
+    @server = options['master_ip'] + ':' + options['port']
     @uuid = options['uuid']
     @hashcatbinpath = options['hc_binary_path']
   rescue
-    "Error reading config/agent_config.json. Did you run rake db:provision_agent ???"
+    'Error reading config/agent_config.json. Did you run rake db:provision_agent ???'
   end
 
   ######### generic api handling of GET and POST request ###########
   def self.get(url)
     begin
       response = RestClient::Request.execute(
-          :method => :get,
-          :url => url,
-          :timeout => 90000000,
-          :cookies => {:agent_uuid => @uuid},
-          :verify_ssl => false
+        method: :get,
+        url: url,
+        timeout: 90_000_000,
+        cookies: { agent_uuid: @uuid },
+        verify_ssl: false
       )
       return response.body
     rescue RestClient::Exception => e
@@ -40,12 +40,12 @@ class Api
   def self.post(url, payload)
     begin
       response = RestClient::Request.execute(
-          :method => :post,
-          :url => url,
-          :payload => payload.to_json,
-          :headers => {:accept => :json},
-          :cookies => {:agent_uuid => @uuid},
-          :verify_ssl => false
+        method: :post,
+        url: url,
+        payload: payload.to_json,
+        headers: {accept: :json},
+        cookies: {agent_uuid: @uuid},
+        verify_ssl: false
       )
       return response.body
     rescue RestClient::Exception => e
@@ -63,8 +63,8 @@ class Api
   # post heartbeat is used when agent is working
   def self.post_heartbeat(payload)
     url = "https://#{@server}/v1/agents/#{@uuid}/heartbeat"
-    puts "HEARTBEETING"
-    return self.post(url, payload)
+    puts 'HEARTBEATING'
+    post(url, payload)
   end
 
   # change status of jobtask
@@ -73,7 +73,7 @@ class Api
     payload = {}
     payload['status'] = status
     payload['jobtask_id'] = jobtask_id
-    return self.post(url, payload)
+    post(url, payload)
   end
 
   # change status of taskqueue item
@@ -83,74 +83,74 @@ class Api
     payload['status'] = status
     payload['taskqueue_id'] = taskqueue_id
     payload['agent_uuid'] = @uuid
-    return self.post(url, payload)
+    post(url, payload)
   end
 
   # get next item in queue
   def self.queue
     url = "https://#{@server}/v1/queue"
-    return self.get(url)
+    get(url)
   end
 
   # get specific item from queue (must already be assigned to agent)
   def self.queue_by_id(id)
     url = "https://#{@server}/v1/queue/#{id}"
-    return self.get(url)
+    get(url)
   end
 
   # remove item from queue
   def self.queue_remove(queue_id)
     url = "https://#{@server}/v1/queue/#{queue_id}/remove"
-    return self.get(url)
+    get(url)
   end
 
   # task details
   def self.task(task_id)
     url = "https://#{@server}/v1/task/#{task_id}"
-    return self.get(url)
+    self.get(url)
   end
-  
+
   # jobtask details
   def self.jobtask(jobtask_id)
     url = "https://#{@server}/v1/jobtask/#{jobtask_id}"
-    return self.get(url)
+    get(url)
   end
 
   # job details
   def self.job(job_id)
     url = "https://#{@server}/v1/job/#{job_id}"
-    return self.get(url)
+    get(url)
   end
 
   # download hashfile
   def self.hashfile(jobtask_id, hashfile_id)
     url = "https://#{@server}/v1/jobtask/#{jobtask_id}/hashfile/#{hashfile_id}"
-    return self.get(url)
+    get(url)
   end
 
   # Rules
-  def self.rules()
+  def self.rules
     url = "https://#{@server}/v1/rules"
-    return self.get(url)
+    get(url)
   end
 
   # Download a rules file
   def self.rule(rules_id)
     url = "https://#{@server}/v1/rules/#{rules_id}"
-    return self.get(url)
+    get(url)
   end
 
   # wordlists
-  def self.wordlists()
+  def self.wordlists
     url = "https://#{@server}/v1/wordlist"
-    return self.get(url)
+    get(url)
   end
 
-  def self.get_updateSmartWordlist()
-    url = "https://#{@server}/v1/updateSmartWordlist"
-    return self.get(url)
+  def self.updateWordlist(wl_id)
+    url = "https://#{@server}/v1/updateWordlist/#{wl_id}"
+    get(url)
   end
-  
+
   # # download a wordlist
   # def self.wordlist(wordlist_id)
   #   url = "https://#{@server}/v1/wordlist/#{wordlist_id}"
@@ -168,15 +168,15 @@ class Api
     puts "attempting upload #{crack_file}"
     begin
       request = RestClient::Request.new(
-        :method => :post,
-        :url => url,
-        :payload => {
-          :multipart => true,
-          :file => File.new(crack_file, 'rb'),
-          :runtime => run_time
+        method: :post,
+        url: url,
+        payload: {
+          multipart: true,
+          file: File.new(crack_file, 'rb'),
+          runtime: run_time
         },
-        :cookies => {:agent_uuid => @uuid},
-        :verify_ssl => false
+        cookies: { agent_uuid: @uuid },
+        verify_ssl: false
       )
       response = request.execute
     rescue RestClient::Exception => e
@@ -191,7 +191,7 @@ class Api
     payload['cpu_count'] = hc_devices['cpus']
     payload['gpu_count'] = hc_devices['gpus']
     payload['benchmark'] = hc_perfstats
-    return self.post(url, payload)
+    post(url, payload)
   end
 end
 
@@ -219,7 +219,7 @@ def hashcatParser(filepath)
       status[gpu] = line.split('.: ')[-1].strip
     end
   end
-  return status
+  status
 end
 
 def hashcatDeviceParser(output)
@@ -236,33 +236,32 @@ def hashcatDeviceParser(output)
   end
   puts "agent has #{cpus} CPUs"
   puts "agent has #{gpus} GPUs"
-  return cpus, gpus
+  [cpus, gpus]
 end
 
 def hashcatBenchmarkParser(output)
-  max_speed = ""
+  max_speed = ''
   output.each_line do |line|
-    if line.start_with?('Speed.Dev.#')
-      max_speed = line.split(': ')[-1].to_s
-    end
+    max_speed = line.split(': ')[-1].to_s if line.start_with?('Speed.Dev.#')
   end
   puts "agent max cracking speed (single NTLM hash):\n #{max_speed}"
-  return max_speed
+  max_speed
 end
 
 def getHashcatPid
   if get_os == 'win'
-    #This does not work on win, need to figure out how to get the pid of hashcat
+    # This does not work on win, need to figure out how to get the pid of hashcat
+    p 'Hashview-Agent doesn\'t currently work on windows. PR\'s welcome :)'
+    exit 0
   else
     pid = `ps -ef | grep hashcat | grep hc_cracked_ | grep -v 'ps -ef' | grep -v 'sh \-c' | awk '{print $2}'`
+    pid.chomp
   end
-  return pid.chomp
 end
 
 # replace the placeholder binary path with the user defined path to hashcat binary
 def replaceHashcatBinPath(cmd)
-  cmd = cmd.gsub('@HASHCATBINPATH@', $hashcatbinpath)
-  return cmd
+  cmd.gsub('@HASHCATBINPATH@', $hashcatbinpath)
 end
 
 # this function compares the agents local rules files to the master server's rules files
@@ -272,12 +271,10 @@ def sync_rules_files()
 
   server_rules = Api.rules()
   server_rules = JSON.parse(server_rules)
-  if server_rules['type'] == 'Error'
-    return false
-  end
+  return false if server_rules['type'] == 'Error'
 
   # get our local list of rules
-  localchecksums = Dir["control/rules/*.checksum"]
+  localchecksums = Dir['control/rules/*.checksum']
   unless localchecksums.empty?
     localchecksums.each do |checksumfile|
       # do nasty hack to get checksum from filename
@@ -291,7 +288,7 @@ def sync_rules_files()
     # if our remote rules file checksum dont match our local rules file checksumchecksums, than download rulesfile by id
     unless local_rulesfile_checksums.include? server_rulesfile['checksum']
       puts "you need to download #{server_rulesfile['name']} = #{server_rulesfile['checksum']}"
-      puts "Downloading..."
+      puts 'Downloading...'
       local_rulesfile = Api.rule(server_rulesfile['id'])
       File.open(server_rulesfile['path'], 'wb') do |f|
         f << local_rulesfile
@@ -299,14 +296,14 @@ def sync_rules_files()
 
       # generate checksums for newly downloaded file
       checksum = Digest::SHA2.hexdigest(File.read(server_rulesfile['path']))
-      File.open("control/rules/#{checksum}" + ".checksum", 'wb') do |f|
+      File.open("control/rules/#{checksum}" + '.checksum', 'wb') do |f|
         f.puts "#{checksum} #{server_rulesfile['path'].split("/")[-1]}"
       end
     end
   end
 end
 
-# this funtion check the host operating system to we can resolve
+# this function check the host operating system to we can resolve
 # differences between win, mac, linux
 def get_os()
   host_os = RbConfig::CONFIG['host_os']
@@ -318,36 +315,34 @@ def get_os()
     else
       host_os='lin'
     end
-  return host_os
+  host_os
 end
 
 
 # this function compares the agents local wordlists to the master server's wordlists
 # if this agent is missing wordlists it will download them before taking jobs from queue.
 def sync_wordlists()
-  localwordlists = []
+  local_wordlists = []
 
-  wordlists = Api.wordlists()
+  wordlists = Api.wordlists
   wordlists = JSON.parse(wordlists)
-  if wordlists['type'] == 'Error'
-    return false
-  end
+  return false if wordlists['type'] == 'Error'
 
   # get our local list of wordlists
-  localchecksums = Dir["control/wordlists/*.checksum"]
-  unless localchecksums.empty?
-    localchecksums.each do |checksumfile|
+  local_checksums = Dir['control/wordlists/*.checksum']
+  unless local_checksums.empty?
+    local_checksums.each do |checksum_file|
       # do nasty hack to get checksum from filename
-      checksum = checksumfile.split('/')[2].split('.checksum')[0]
-      localwordlists << checksum
+      checksum = checksum_file.split('/')[2].split('.checksum')[0]
+      local_wordlists << checksum
     end
   end
 
   wordlists['wordlists'].each do |wl|
     # if our remote wordlists dont match our local checksums, than download wordlist by id
-    unless localwordlists.include? wl['checksum']
+    unless local_wordlists.include? wl['checksum']
       puts "you need to download #{wl['name']} = #{wl['checksum']}"
-      puts "Downloading..."
+      puts 'Downloading...'
       filename = wl['path'].split('/')[-1]
       File.open('control/tmp/' + filename + '.gz', 'wb') {|f|
         block = proc { |response|
@@ -357,30 +352,26 @@ def sync_wordlists()
         }
         # Have to create our own request since response is not in json format
         options = JSON.parse(File.read('config/agent_config.json'))
-        @server = options['master_ip'] + ":" + options['port']
+        @server = options['master_ip'] + ':' + options['port']
         @uuid = options['uuid']
         url = "https://#{@server}/v1/wordlist/#{wl['id']}"
         RestClient::Request.new(
-          method: :get, 
-          url: url, 
-          cookies: {:agent_uuid => @uuid},
+          method: :get,
+          url: url,
+          cookies: {agent_uuid: @uuid},
           timeout: 43200,
           verify_ssl: false,
           block_response: block
-          ).execute
+        ).execute
       }
       cmd = "mv control/tmp/#{filename}.gz control/wordlists/"
       `#{cmd}`
-      puts "Unpacking...."
+      puts 'Unpacking....'
       cmd = "gunzip -f control/wordlists/#{filename}.gz"
       `#{cmd}`
 
-      # Renaming
-      #cmd = "mv control/wordlists/#{wl['name']} #{wl['path']}"
-      #`#{cmd}`
-
       # generate checksums for newly downloaded file
-      puts "Calculating checksum"
+      puts 'Calculating checksum'
  
       checksum = ''
       case get_os
@@ -389,7 +380,7 @@ def sync_wordlists()
         else
           checksum = `sha256sum "#{wl['path']}"`
       end
-      File.open("control/wordlists/#{checksum.split(' ')[0]}" + ".checksum", 'wb') do |f|
+      File.open("control/wordlists/#{checksum.split(' ')[0]}" + '.checksum', 'wb') do |f|
         f.puts "#{checksum.split(' ')[0]} #{wl['path'].split('/')[-1]}"
       end
     end
@@ -400,13 +391,13 @@ end
 def hc_benchmark()
   cmd = $hashcatbinpath + ' -b -m 1000'
   hc_perfstats = `#{cmd}`
-  return  hc_perfstats
+  hc_perfstats
 end
 
 def hc_device_list()
   cmd = $hashcatbinpath + ' -I'
   hc_devices = `#{cmd}`
-  return  hc_devices
+  hc_devices
 end
 
 # is hashcat working? if so, how fast are you? provide basic information to master server
@@ -416,21 +407,21 @@ hc_devices['gpus'] = hc_gpus
 hc_devices['cpus'] = hc_cpus
 hc_perfstats = hashcatBenchmarkParser(hc_benchmark)
 
-while(1)
+while 1
   sleep(4)
 
   # find pid
   pid = getHashcatPid
 
   # wait a bit to avoid race condition
-  if !pid.nil? and File.exist?('control/tmp/agent_current_task.txt')
+  if !pid.nil? && File.exist?('control/tmp/agent_current_task.txt')
     sleep(10)
     pid = getHashcatPid
   end
 
   # ok either do nothing or start working
   if pid.nil?
-    puts "AGENT IS WORKING RIGHT NOW"
+    puts 'AGENT IS WORKING RIGHT NOW'
   else
 
     # if we have taskqueue tmp file locally, delete it
@@ -447,13 +438,13 @@ while(1)
     puts heartbeat
 
     # upon initial authorization perfstats
-    if heartbeat['type'] == 'message' and heartbeat['msg'] == 'Authorized'
+    if heartbeat['type'] == 'message' && heartbeat['msg'] == 'Authorized'
       payload['agent_status'] = 'Syncing'
-      #sync_rules_files
+      # sync_rules_files
       Api.stats(hc_devices, hc_perfstats)
     end
 
-    if heartbeat['type'] == 'message' and heartbeat['msg'] == 'START'
+    if heartbeat['type'] == 'message' && heartbeat['msg'] == 'START'
 
       # Sync up before jobs starts
       payload['agent_status'] = 'Syncing'
@@ -490,22 +481,27 @@ while(1)
         # puts wordlists
         #puts Api.wordlist()
 
-        p "DEBUG: jobtask: " + jobtask.to_s
-        # Check to see if we're using Smart Wordlist and if so, calculate it and download it
-        p "DEBUG: jobtask['task_id']" + jobtask['task_id'].to_s
+        # p 'DEBUG: jobtask: ' + jobtask.to_s
+        # Check to see if we're using a Dynamic Wordlist and if so, force update, calculate checksum and download it
+        # p "DEBUG: jobtask['task_id'] " + jobtask['task_id'].to_s
         task = JSON.parse(Api.task(jobtask['task_id']))
-        p "DEBUG TASK: " + task.to_s
+        # p 'DEBUG TASK: ' + task.to_s
         wordlists = JSON.parse(Api.wordlists)
+        # p 'DEBUG WORDLISTS: ' + wordlists.to_s
         wordlists['wordlists'].each do |wordlist|
+          # p 'Wordlist.id ' + wordlist['id'].to_s + ' vs task.wl_id' + task['wl_id'].to_s
           if wordlist['id'].to_i == task['wl_id'].to_i
-            if wordlist['name'] == 'Smart Wordlist'
-              p "We're using a smart wordlist, forcing an update"
-              Api.get_updateSmartWordlist
+            # p 'Wordlist type: ' + wordlist['type'].to_s
+            if wordlist['type'] == 'dynamic'
+              p 'We\'re using a dynamic wordlist, forcing an update.'
+              Api.updateWordlist(wordlist['id'])
               # Remote file may have changed, now we need to sync
-              p 'Update Complete'
-              p 'syncing wordlists'
+              p 'Update Complete.'
+              p 'syncing wordlists.'
               sync_wordlists
-              p 'Sync complete'
+              p 'Sync complete.'
+            # else
+              #c p 'Wordlist ' + wordlist[:name].to_s + '(' + wordlist[:id].to_s + ') is not dynamic.'
             end
           end
         end
@@ -541,7 +537,7 @@ while(1)
         catch :mainloop do
           while thread1.status do
             sleep 4
-            puts "WORKING IN THREAD"
+            puts 'WORKING IN THREAD'
             puts "WORKING ON ID: #{jdata['id']}"
             payload = {}
             payload['agent_status'] = 'Working'
@@ -571,7 +567,6 @@ while(1)
         end
 
         # set jobtask status to importing
-        # commenting out now that we are chunking
         Api.post_queue_status(jdata['id'], 'Importing')
 
         # upload results
@@ -579,19 +574,11 @@ while(1)
         if File.exist?(crack_file)
           Api.upload_crackfile(jobtask['id'], crack_file, run_time)
         else
-          puts "No successful cracks for this task. Skipping upload."
+          puts 'No successful cracks for this task. Skipping upload.'
         end
 
         # remove task data tmp file
         File.delete('control/tmp/agent_current_task.txt') if File.exist?('control/tmp/agent_current_task.txt')
-
-        # change status to completed for jobtask
-        # commenting out now that we are chunking
-        # if @canceled
-        #   Api.post_jobtask_status(jdata['jobtask_id'], 'Canceled')
-        # else
-        #   Api.post_jobtask_status(jdata['jobtask_id'], 'Completed')
-        # end
 
         # set taskqueue item to complete and remove from queue
         Api.post_queue_status(jdata['id'], 'Completed')
