@@ -18,6 +18,8 @@ control/analysis/*
 !control/analysis/.blank
 control/status/*
 !control/status/.blank
+control/rules/*
+!control/rules/.blank
 control/wordlists/*
 !control/wordlists/.blank
 !control/wordlists/password.gz
@@ -28,5 +30,5 @@ cudaHashcat.log
 *.restore
 *.idea
 dump.rdb
-~                                                                                                                                            
-~                           
+~
+~
