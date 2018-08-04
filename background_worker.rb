@@ -43,7 +43,7 @@ class Api
         method: :post,
         url: url,
         payload: payload.to_json,
-        headers: {accept: :json},
+        headers: {:accept => :json, :content_type => 'application/json'},
         cookies: {agent_uuid: @uuid},
         verify_ssl: false
       )
