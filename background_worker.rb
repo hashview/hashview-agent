@@ -43,7 +43,7 @@ class Api
         method: :post,
         url: url,
         payload: payload.to_json,
-        headers: {:accept => :json, :content_type => 'application/json'},
+        headers: {accept: :json, content_type: 'application/json'},
         cookies: {agent_uuid: @uuid},
         verify_ssl: false
       )
@@ -372,7 +372,7 @@ def sync_wordlists()
 
       # generate checksums for newly downloaded file
       puts 'Calculating checksum'
- 
+
       checksum = ''
       case get_os
         when /mac/  #provide mac support
@@ -505,7 +505,7 @@ while 1
             end
           end
         end
-        
+
         # generate hashfile via api
         hashes = Api.hashfile(jobtask['id'], job['hashfile_id'])
 
