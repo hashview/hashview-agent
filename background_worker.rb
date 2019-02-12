@@ -547,7 +547,7 @@ while(1)
             payload['agent_status'] = 'Working'
             payload['agent_task'] = jdata['id']
             # provide hashcat status with hearbeat
-            payload['hc_status'] = hashcatParser("control/outfiles/hcoutput_#{@jobid}.txt")
+            payload['hc_status'] = hashcatParser("control/hashes/hashfile_#{jdata['job_id']}_#{jobtask['task_id']}.txt")
             heartbeat = Api.post_heartbeat(payload)
             heartbeat = JSON.parse(heartbeat)
 
