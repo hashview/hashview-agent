@@ -1,3 +1,7 @@
+# !!! THIS PROJECT IS DEPRICATED !!!
+It will no longer be maintained. If you wish to use the latest version of hashview, please checkout https://github.com/hashview/hashview
+
+
 # Hashview Agent
 
 This is the headless agent that connects to the master instance of Hashview to support distributed cracking.
